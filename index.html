@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .record {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+
+        <div id="attendance-section" style="display:none;">
+            <h3>Mark Attendance</h3>
+            <button onclick="markAttendance('present')">Mark Present</button>
+            <button onclick="markAttendance('absent')">Mark Absent</button>
+
+            <h3>Attendance Records</h3>
+            <div id="attendance-records"></div>
+        </div>
+    </div>
+
+    <script>
+        let token = '';
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:5000/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    document.getElementById('attendance-section').style.display = 'block';
+                    alert('Login successful!');
+                    fetchAttendanceRecords();
+                } else {
+                    alert('Login failed: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error logging in: ' + error.message);
+            }
+        }
+
+        async function markAttendance(status) {
+            try {
+                const response = await fetch('http://localhost:5000/mark-attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                if (response.ok) {
+                    alert('Attendance marked as ' + status);
+                    fetchAttendanceRecords();
+                } else {
+                    alert('Error marking attendance');
+                }
+            } catch (error) {
+                alert('Error marking attendance: ' + error.message);
+            }
+        }
+
+        async function fetchAttendanceRecords() {
+            try {
+                const response = await fetch('http://localhost:5000/attendance', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const records = await response.json();
+                const recordsContainer = document.getElementById('attendance-records');
+                recordsContainer.innerHTML = '';
+
+                records.forEach(record => {
+                    const recordDiv = document.createElement('div');
+                    recordDiv.className = 'record';
+                    recordDiv.textContent = `${record.date}: ${record.status}`;
+                    recordsContainer.appendChild(recordDiv);
+                });
+            } catch (error) {
+                alert('Error fetching attendance records: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
